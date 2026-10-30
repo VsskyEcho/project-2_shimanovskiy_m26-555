@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
+from primitive_db.engine import welcome
+
+
 def main():
     """Точка входа в программу."""
-    print("DB project is running!")
+    welcome()
 
 
 # main() вызываем только когда модуль запустили как программу,
