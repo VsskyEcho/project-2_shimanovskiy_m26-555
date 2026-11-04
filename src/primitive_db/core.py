@@ -1,5 +1,5 @@
 from primitive_db.constants import ID_COLUMN, ID_TYPE, VALID_TYPES
-from primitive_db.decorators import handle_db_errors
+from primitive_db.decorators import confirm_action, handle_db_errors
 from primitive_db.utils import load_table_data
 
 
@@ -55,6 +55,7 @@ def check_table_exists(metadata, table_name):
     return True
 
 
+@confirm_action("удаление таблицы")
 def drop_table(metadata, table_name):
     """Удаляет таблицу из метаданных и возвращает их (или None если таблицы нет)."""
     if not check_table_exists(metadata, table_name):
@@ -169,6 +170,8 @@ def update(table_data, set_clause, where_clause):
     return table_data
 
 
+# сначала спрашиваем подтверждение, потом уже выполняем с обработкой ошибок
+@confirm_action("удаление записи")
 @handle_db_errors
 def delete(table_data, where_clause):
     """Удаляет записи, подходящие под where. Возвращает оставшиеся данные."""

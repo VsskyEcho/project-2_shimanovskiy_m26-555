@@ -89,6 +89,10 @@ def run_drop_table(metadata, args):
         raise ValueError(" ".join(args))
 
     table_name = args[1]
+    # проверяем заранее, чтобы не спрашивать "вы уверены?" про несуществующую
+    if not core.check_table_exists(metadata, table_name):
+        return
+
     new_metadata = core.drop_table(metadata, table_name)
     if new_metadata is not None:
         save_metadata(META_FILE, new_metadata)
