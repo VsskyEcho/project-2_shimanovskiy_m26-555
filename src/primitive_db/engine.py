@@ -5,6 +5,7 @@ from prettytable import PrettyTable
 
 from primitive_db import core
 from primitive_db.constants import ID_COLUMN, META_FILE
+from primitive_db.decorators import handle_db_errors
 from primitive_db.parser import parse_condition, parse_values
 from primitive_db.utils import (
     delete_table_data,
@@ -61,12 +62,10 @@ def print_records(table_columns, records):
     print(table)
 
 
+@handle_db_errors
 def find_ids(table_name, table_data, where_clause):
     """Возвращает ID записей под условие where или None, если таких нет."""
     found = core.find_records(table_data, where_clause)
-    if found is None:
-        # ошибку уже напечатали в core
-        return None
     if not found:
         print(f'В таблице "{table_name}" нет записей по такому условию.')
         return None
