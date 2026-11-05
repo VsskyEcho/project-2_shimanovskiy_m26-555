@@ -1,5 +1,5 @@
 from primitive_db.constants import ID_COLUMN, ID_TYPE, VALID_TYPES
-from primitive_db.decorators import confirm_action, handle_db_errors
+from primitive_db.decorators import confirm_action, handle_db_errors, log_time
 from primitive_db.utils import load_table_data
 
 
@@ -76,7 +76,9 @@ def list_tables(metadata):
         print(f"- {table_name}")
 
 
+# log_time должен быть ближе к функции, иначе он напечатает имя wrapper
 @handle_db_errors
+@log_time
 def insert(metadata, table_name, values):
     """Добавляет новую запись в таблицу и возвращает все данные таблицы.
 
@@ -145,6 +147,7 @@ def find_records(table_data, where_clause):
 
 
 @handle_db_errors
+@log_time
 def select(table_data, where_clause=None):
     """Возвращает все записи или только те, что подходят под where."""
     if where_clause is None:
