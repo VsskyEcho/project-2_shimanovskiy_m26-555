@@ -1,6 +1,14 @@
 from primitive_db.constants import ID_COLUMN, ID_TYPE, VALID_TYPES
-from primitive_db.decorators import confirm_action, handle_db_errors, log_time
+from primitive_db.decorators import (
+    confirm_action,
+    create_cacher,
+    handle_db_errors,
+    log_time,
+)
 from primitive_db.utils import load_table_data
+
+# кэш для результатов select, живёт пока работает программа
+select_cache = create_cacher()
 
 
 def columns_to_text(table_columns):
@@ -149,10 +157,17 @@ def find_records(table_data, where_clause):
 @handle_db_errors
 @log_time
 def select(table_data, where_clause=None):
-    """Возвращает все записи или только те, что подходят под where."""
+    """Возвращает все записи или только те, что подходят под where.
+
+    Результаты одинаковых запросов берутся из кэша.
+    """
     if where_clause is None:
         return table_data
-    return find_records(table_data, where_clause)
+
+    # в ключ кладём и условие, и сами данные: если данные поменялись
+    # (insert/update/delete), это уже другой ключ и старый результат не вернётся
+    key = str(table_data) + str(where_clause)
+    return select_cache(key, lambda: find_records(table_data, where_clause))
 
 
 @handle_db_errors

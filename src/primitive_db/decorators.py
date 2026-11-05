@@ -61,3 +61,19 @@ def log_time(func):
         return result
 
     return wrapper
+
+
+def create_cacher():
+    """Создаёт функцию для кэширования. Сам кэш (словарь) живёт в замыкании."""
+    cache = {}
+
+    def cache_result(key, value_func):
+        # уже считали такой ключ - отдаём из кэша
+        if key in cache:
+            return cache[key]
+        # иначе считаем, запоминаем и отдаём
+        result = value_func()
+        cache[key] = result
+        return result
+
+    return cache_result
