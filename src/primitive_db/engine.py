@@ -65,6 +65,7 @@ def print_records(table_columns, records):
 @handle_db_errors
 def find_ids(table_name, table_data, where_clause):
     """Возвращает ID записей под условие where или None, если таких нет."""
+    # если в where несуществующий столбец - KeyError поймает декоратор
     found = core.find_records(table_data, where_clause)
     if not found:
         print(f'В таблице "{table_name}" нет записей по такому условию.')
