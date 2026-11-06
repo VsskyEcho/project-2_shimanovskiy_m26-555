@@ -1,5 +1,14 @@
 from primitive_db.constants import ID_COLUMN, ID_TYPE, VALID_TYPES
+from primitive_db.decorators import (
+    confirm_action,
+    create_cacher,
+    handle_db_errors,
+    log_time,
+)
 from primitive_db.utils import load_table_data
+
+# кэш для результатов select, живёт пока работает программа
+select_cache = create_cacher()
 
 
 def columns_to_text(table_columns):
@@ -10,6 +19,7 @@ def columns_to_text(table_columns):
     return ", ".join(parts)
 
 
+@handle_db_errors
 def create_table(metadata, table_name, columns):
     """Создаёт таблицу и возвращает обновлённые метаданные.
 
@@ -34,8 +44,7 @@ def create_table(metadata, table_name, columns):
         # имя не пустое и не повторяется, а тип только из разрешённых
         is_bad_name = column_name == "" or column_name in table_columns
         if is_bad_name or column_type not in VALID_TYPES:
-            print(f"Некорректное значение: {column}. Попробуйте снова.")
-            return None
+            raise ValueError(column)
 
         table_columns[column_name] = column_type
 
@@ -54,6 +63,7 @@ def check_table_exists(metadata, table_name):
     return True
 
 
+@confirm_action("удаление таблицы")
 def drop_table(metadata, table_name):
     """Удаляет таблицу из метаданных и возвращает их (или None если таблицы нет)."""
     if not check_table_exists(metadata, table_name):
@@ -74,6 +84,9 @@ def list_tables(metadata):
         print(f"- {table_name}")
 
 
+# log_time должен быть ближе к функции, иначе он напечатает имя wrapper
+@handle_db_errors
+@log_time
 def insert(metadata, table_name, values):
     """Добавляет новую запись в таблицу и возвращает все данные таблицы.
 
@@ -91,11 +104,9 @@ def insert(metadata, table_name, values):
             user_columns.append(column_name)
 
     if len(values) != len(user_columns):
-        print(
-            f"Некорректное значение: количество значений {len(values)}, "
-            f"а нужно {len(user_columns)}. Попробуйте снова."
+        raise ValueError(
+            f"количество значений {len(values)}, а нужно {len(user_columns)}"
         )
-        return None
 
     table_data = load_table_data(table_name)
 
@@ -112,8 +123,7 @@ def insert(metadata, table_name, values):
         column_type = table_columns[column_name]
         # type() а не isinstance(), потому что True это тоже int в питоне
         if type(value) is not VALID_TYPES[column_type]:
-            print(f"Некорректное значение: {value}. Попробуйте снова.")
-            return None
+            raise ValueError(value)
         new_record[column_name] = value
 
     table_data.append(new_record)
@@ -132,54 +142,59 @@ def is_match(record, where_clause):
 
 
 def find_records(table_data, where_clause):
-    """Возвращает список записей, подходящих под условие where."""
+    """Возвращает список записей, подходящих под условие where.
+
+    Если столбца нет - вылетит KeyError, его ловит декоратор у того,
+    кто эту функцию вызвал.
+    """
     found = []
-    try:
-        for record in table_data:
-            if is_match(record, where_clause):
-                found.append(record)
-    except KeyError as error:
-        print(f"Ошибка: Столбец {error} не найден.")
-        return None
+    for record in table_data:
+        if is_match(record, where_clause):
+            found.append(record)
     return found
 
 
+@handle_db_errors
+@log_time
 def select(table_data, where_clause=None):
-    """Возвращает все записи или только те, что подходят под where."""
+    """Возвращает все записи или только те, что подходят под where.
+
+    Результаты одинаковых запросов берутся из кэша.
+    """
     if where_clause is None:
         return table_data
-    return find_records(table_data, where_clause)
+
+    # в ключ кладём и условие, и сами данные: если данные поменялись
+    # (insert/update/delete), это уже другой ключ и старый результат не вернётся
+    key = str(table_data) + str(where_clause)
+    return select_cache(key, lambda: find_records(table_data, where_clause))
 
 
+@handle_db_errors
 def update(table_data, set_clause, where_clause):
     """Меняет поля из set_clause у записей, подходящих под where. Возвращает данные."""
-    found = find_records(table_data, where_clause)
-    if found is None:
-        return None
-
-    for record in found:
+    for record in find_records(table_data, where_clause):
         for column, new_value in set_clause.items():
+            if column not in record:
+                raise KeyError(column)
             # ID менять нельзя, иначе могут появиться одинаковые ID
-            if column not in record or column == ID_COLUMN:
-                print(f"Некорректное значение: {column}. Попробуйте снова.")
-                return None
+            if column == ID_COLUMN:
+                raise ValueError(column)
             # тип нового значения должен совпадать с типом столбца
             if type(new_value) is not type(record[column]):
-                print(f"Некорректное значение: {new_value}. Попробуйте снова.")
-                return None
+                raise ValueError(new_value)
             record[column] = new_value
 
     return table_data
 
 
+# сначала спрашиваем подтверждение, потом уже выполняем с обработкой ошибок
+@confirm_action("удаление записи")
+@handle_db_errors
 def delete(table_data, where_clause):
     """Удаляет записи, подходящие под where. Возвращает оставшиеся данные."""
     new_data = []
-    try:
-        for record in table_data:
-            if not is_match(record, where_clause):
-                new_data.append(record)
-    except KeyError as error:
-        print(f"Ошибка: Столбец {error} не найден.")
-        return None
+    for record in table_data:
+        if not is_match(record, where_clause):
+            new_data.append(record)
     return new_data
