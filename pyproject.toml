@@ -1,7 +1,7 @@
 [project]
 name = "primitive-db"
 version = "0.5.0"
-description = "Add your description here"
+description = "Примитивная база данных с консольным интерфейсом (учебный проект)"
 readme = "README.md"
 authors = [
     { name = "Ivan Ovcherenko", email = "azdi@asdus.ru" }

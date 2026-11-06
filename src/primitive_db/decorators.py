@@ -68,6 +68,7 @@ def create_cacher():
     cache = {}
 
     def cache_result(key, value_func):
+        """Отдаёт результат из кэша по ключу, а если его нет - считает value_func."""
         # уже считали такой ключ - отдаём из кэша
         if key in cache:
             return cache[key]
