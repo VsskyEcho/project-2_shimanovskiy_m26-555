@@ -123,3 +123,7 @@ src/primitive_db/
   ```
 
 Результаты одинаковых запросов `select` кэшируются с помощью замыкания `create_cacher`.
+
+- [Part 2: Tables](https://asciinema.org/a/RLdk2lXTGdUyld8J.cast)
+- [Part 3: CRUD](https://asciinema.org/a/gI067pcemRkXzIFA.cast)
+- [Final Full](https://asciinema.org/a/DyOU4p2wZx3eJFRX.cast)
