@@ -1,11 +1,9 @@
 [project]
 name = "primitive-db"
 version = "0.5.0"
-description = "Примитивная база данных с консольным интерфейсом (учебный проект)"
+description = "Примитивная база данных с консольным интерфейсом"
 readme = "README.md"
-authors = [
-    { name = "Ivan Ovcherenko", email = "azdi@asdus.ru" }
-]
+authors = [{ name = "Shimanovskiy" }]
 requires-python = ">=3.12"
 dependencies = [
     "prettytable>=3.18.0",
